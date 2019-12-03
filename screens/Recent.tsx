@@ -1,8 +1,19 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { View, Text, ToastAndroid, ScrollView } from 'react-native';
 import { useNavigation } from 'react-navigation-hooks'
 import styled from 'styled-components';
-import { any } from 'prop-types';
+import firebase from 'firebase'
+
+import Header from '../components/Header'
+import firebaseConfig from '../config/firebase';
+
+if(!firebase.apps.length){
+    firebase.initializeApp(firebaseConfig)
+}
+
+require('firebase/firestore')
+
+let db = firebase.firestore();
 
 const MainView = styled.ScrollView`
     background-color: #ffffff;
@@ -46,94 +57,95 @@ const PostContent = styled.Text`
     padding-top: 8px;
 `
 
-const posts = [
-    {
-        author: "Blaka Blakowski",
-        date: new Date().toJSON(),
-        content: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Morbi ac est lectus. Fusce at posuere quam. Orci varius natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Nullam consequat enim vel sapien semper, eu pharetra enim suscipit. Quisque congue et turpis ac consectetur. Curabitur rhoncus iaculis erat, ut auctor sapien hendrerit et. Donec tellus nisl, dictum at lorem sit amet, pretium fringilla nibh. Integer aliquet lorem id lorem tempus, ac porta mi facilisis. Nunc mollis mauris ac dignissim dictum. Nam ullamcorper rhoncus diam, ut maximus augue iaculis nec. Aliquam erat volutpat."
-    },
-    {
-        author: "Artur Arciszewski",
-        date: new Date().toJSON(),
-        content: "Quisque sed magna non massa egestas feugiat sit amet in nibh. Fusce bibendum lectus a pulvinar vulputate. Ut a mattis lorem. Praesent tincidunt fringilla elit, vel accumsan nibh. Nulla lorem est, blandit vel risus id, rutrum gravida sem. Duis at pulvinar erat, at aliquam felis. Praesent mauris urna, condimentum non ullamcorper et, porttitor ac sem. Nam enim metus, venenatis quis diam non, euismod finibus quam. Nam ac facilisis sapien. Etiam consequat mauris sit amet arcu varius bibendum. Quisque urna ligula, tincidunt et placerat id, viverra at nisi. Phasellus rhoncus et nisi vitae semper. Nulla bibendum feugiat suscipit."
-    },
-    {
-        author: "Artur Arciszewski",
-        date: new Date().toJSON(),
-        content: "Quisque sed magna non massa egestas feugiat sit amet in nibh. Fusce bibendum lectus a pulvinar vulputate. Ut a mattis lorem. Praesent tincidunt fringilla elit, vel accumsan nibh. Nulla lorem est, blandit vel risus id, rutrum gravida sem. Duis at pulvinar erat, at aliquam felis. Praesent mauris urna, condimentum non ullamcorper et, porttitor ac sem. Nam enim metus, venenatis quis diam non, euismod finibus quam. Nam ac facilisis sapien. Etiam consequat mauris sit amet arcu varius bibendum. Quisque urna ligula, tincidunt et placerat id, viverra at nisi. Phasellus rhoncus et nisi vitae semper. Nulla bibendum feugiat suscipit."
-    }
-]
-
 interface Post {
+    id?: number,
     author?: string;
     content?: string;
     date?: JSON
 }
 
-const Recent: React.FC = () => {
+const Recent: React.FC = (props) => {
     const { navigate } = useNavigation();
-    return(
-        <ScrollView contentContainerStyle={{backgroundColor: "#ffffff", display: "flex", justifyContent: "center", alignItems: "center", paddingBottom: 80}}>
-            {posts.map((post: Post) => {
-                const [month, setMonth] = useState("Styczeń")
-                let dayDate = new Date(post.date);
+    const [posts, setPosts] = useState([])
 
-                setTimeout(() => {
+    if(posts.length < 1){
+        db.collection("posts").onSnapshot((snap) => {
+            let postsArray = []
+            snap.forEach((doc) => {
+                let post = doc.data();
+                post.id = doc.id;
+                postsArray.push(post);
+            })
+            
+            setPosts(postsArray);
+        })
+    }
+
+    return(
+        <>
+        <Header title="Najnowsze" search={false} />
+        <ScrollView contentContainerStyle={{backgroundColor: "#ffffff", display: "flex", justifyContent: "center", alignItems: "center"}}>
+            {typeof(posts) !== "undefined" && posts.sort((a: Post, b: Post) => (a.date < b.date) ? 1 : -1).map((post: Post) => {
+                
+                let dayDate = post.date.toDate();
+
+                const getDateMonth = () => {
                     switch (dayDate.getMonth()){
                         case 1:
-                            setMonth("Styczeń")
+                            return("Styczeń")
                             break;
                         case 2:
-                            setMonth("Luty")
+                            return("Luty")
                             break;
                         case 3:
-                            setMonth("Marzec")
+                            return("Marzec")
                             break;
                         case 4:
-                            setMonth("Kwiecień")
+                            return("Kwiecień")
                             break;
                         case 5:
-                            setMonth("Maj")
+                            return("Maj")
                             break;
                         case 6:
-                            setMonth("Czerwiec")
+                            return("Czerwiec")
                             break;
                         case 7:
-                            setMonth("Lipiec")
+                            return("Lipiec")
                             break;
                         case 8:
-                            setMonth("Sierpień")
+                            return("Sierpień")
                             break;
                         case 9:
-                            setMonth("Wrzesień")
+                            return("Wrzesień")
                             break;
                         case 10:
-                            setMonth("Październik")
+                            return("Październik")
                             break;
                         case 11:
-                            setMonth("Listopad")
+                            return("Listopad")
                             break;
                         case 12:
-                            setMonth("Grudzień")
+                            return("Grudzień")
                             break;
                     }
-                }, 10)
+                }
 
                 return(
-                    <PostView>
+                    <PostView key={post.id}>
                         <PostTopBarContainer>
                             <PostTobBarSecondContainer>
                                 <PostTopBarName>{post.author}</PostTopBarName>
-                                <PostTopBarDate>{dayDate.getDate()} {month} {dayDate.getFullYear()}</PostTopBarDate>
+                                <PostTopBarDate>{dayDate.getDate()} {getDateMonth()} {dayDate.getFullYear()}</PostTopBarDate>
                             </PostTobBarSecondContainer>
                         </PostTopBarContainer>
-                        <PostContent>
+                        <PostContent numberOfLines={5}>
                             {post.content}
                         </PostContent>
                     </PostView>
                 )
             })}
         </ScrollView>
+        </>
     )
 }
 
